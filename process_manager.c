@@ -1,180 +1,55 @@
 #include "process_manager.h"
 
-/*
- * Function 1: Basic Producer-Consumer Demo
- * Creates one producer child (sends 1,2,3,4,5) and one consumer child (adds them up)
- */
 int run_basic_demo(void) {
     int pipe_fd[2];
     pid_t producer_pid, consumer_pid;
     int status;
-    int data = 42;
+
     printf("\nParent process (PID: %d) creating children...\n", getpid());
-    
-    int pipe1_fd[2];
-    if (pipe(pipe1_fd) == -1){
+
+    if (pipe(pipe_fd) == -1) {
         perror("pipe failed");
         return -1;
     }
 
-    // TODO 2: Fork the producer process
-    close(pipe1_fd[0]); // Close read end
-    write(pipe1_fd[1], &data, sizeof(data));
-    close(pipe1_fd[1]);
-    // HINT: producer_pid = fork();
     producer_pid = fork();
-    // Child calls: producer_process(pipe_fd[1], 1);  // Start with number 1
-    producer_process(pipe1_fd[1], 1);
-    // Child must close pipe_fd[0] (read end)
-    close (pipe1_fd[0]);
-    // Parent prints: "Created producer child (PID: %d)"
-    printf("Created producer child (PID: %d)" , pipe1_fd[0]);
 
-    // TODO 3: Fork the consumer process
-    // HINT: consumer_pid = fork();
+    if (producer_pid == 0) {
+        close(pipe_fd[0]);
+        producer_process(pipe_fd[1], 1);
+    }
+
+    printf("Created producer child (PID: %d)\n", producer_pid);
+
     consumer_pid = fork();
-    // Child calls: consumer_process(pipe_fd[0], 0);  // Pair ID 0 for basic demo
-    consumer_process(pipe1_fd[0], 0); //Pair ID 0 for basic demo
-    // Child must close pipe_fd[1] (write end)
-    close (pipe1_fd[1]);
-    // Parent prints: "Created consumer child (PID: %d)"
-    printf("Created consumer child (PID: %d)", pipe1_fd[1]);
 
+    if (consumer_pid == 0) {
+        close(pipe_fd[1]);
+        consumer_process(pipe_fd[0], 0);
+    }
 
-    // TODO 4: Parent cleanup - close pipe ends and wait for children
-    close (pipe1_fd[1]);
-    // HINT: close(pipe_fd[0]); close(pipe_fd[1]);
-    close (pipe1_fd[0]); close (pipe1_fd[1]);
-    // Use waitpid() twice to wait for both specific children
-    int status1;
-    int specific_pid;
-    pid_t child_pid = waitpid(specific_pid, &status, 0);
-    printf("Child %d exited with status %d\n", child_pid, status1);
-    
-    child_pid = waitpid(specific_pid, &status, 1);
-    printf("Child %d exited with status %d\n", child_pid, status1);
-    // Print exit status for each child
+    printf("Created consumer child (PID: %d)\n", consumer_pid);
 
+    close(pipe_fd[0]);
+    close(pipe_fd[1]);
+
+    waitpid(producer_pid, &status, 0);
+    printf("Producer exited with status %d\n", WEXITSTATUS(status));
+
+    waitpid(consumer_pid, &status, 0);
+    printf("Consumer exited with status %d\n", WEXITSTATUS(status));
 
     return 0;
 }
 
-/*
- * Function 2: Multiple Producer-Consumer Pairs
- * Creates multiple pairs: pair 1 uses numbers 1-5, pair 2 uses 6-10, etc.
- */
 int run_multiple_pairs(int num_pairs) {
-    pid_t pids[10]; // Store all child PIDs
+    pid_t pids[10];
     int pid_count = 0;
 
     printf("\nParent creating %d producer-consumer pairs...\n", num_pairs);
 
-    // TODO 5: Create multiple producer-consumer pairs
-    
-    // HINT: Use a for loop from i=0 to i<num_pairs
-    // For each iteration: 
-    //   - Create a new pipe
-    //   - Fork producer: calls producer_process(write_fd, i*5 + 1)
-    //     So pair 1 starts with 1, pair 2 starts with 6, pair 3 starts with 11
-    //   - Fork consumer: calls consumer_process(read_fd, i+1)
-    //   - Store both PIDs in pids array, increment pid_count
-    //   - Parent closes both pipe ends
-    //   - Print "=== Pair %d ===" for each pair
     for (int i = 0; i < num_pairs; i++) {
+        printf("=== Pair %d ===\n", i + 1);
 
-    printf("=== Pair %d ===\n", i + 1);
-
-    int fd[2];
-    pipe(fd);  // Create pipe
-
-    pid_t producer_pid = fork();
-
-    if (producer_pid == 0) {
-        close(fd[0]);  // close read end
-        producer_process(fd[1], i * 5 + 1);
-        exit(0);
-    }
-
-    pid_t consumer_pid = fork();
-
-    if (consumer_pid == 0) {
-        close(fd[1]);  // close write end
-        consumer_process(fd[0], i + 1);
-        exit(0);
-    }
-
-    close(fd[0]);
-    close(fd[1]);
-
-    pids[pid_count++] = producer_pid;
-    pids[pid_count++] = consumer_pid;
-    }
-
-
-
-
-    // TODO 6: Wait for all children
-    // HINT: Use a for loop to wait for all PIDs in the pids array
-    // Print exit status for each child
-    for (int i = 0; i < pid_count; i++) {
-    int status;
-    pid_t finished_pid = waitpid(pids[i], &status, 0);
-
-    if (WIFEXITED(status)) {
-        printf("Child %d exited with status %d\n",
-               finished_pid,
-               WEXITSTATUS(status));
-    }
-    }
-
-    printf("\nAll pairs completed successfully!\n");
-
-    
-    return 0;
-    }
-
-/*
- * Producer Process - Sends 5 sequential numbers starting from start_num
- */
-void producer_process(int write_fd, int start_num) {
-    printf("Producer (PID: %d) starting...\n", getpid());
-    
-    // Send 5 numbers: start_num, start_num+1, start_num+2, start_num+3, start_num+4
-    for (int i = 0; i < NUM_VALUES; i++) {
-        int number = start_num + i;
-        
-        if (write(write_fd, &number, sizeof(number)) != sizeof(number)) {
-            perror("write");
-            exit(1);
-        }
-        
-        printf("Producer: Sent number %d\n", number);
-        usleep(100000); // Small delay to see output clearly
-    }
-    
-    printf("Producer: Finished sending %d numbers\n", NUM_VALUES);
-    close(write_fd);
-    exit(0);
-}
-
-/*
- * Consumer Process - Receives numbers and calculates sum
- */
-void consumer_process(int read_fd, int pair_id) {
-    int number;
-    int count = 0;
-    int sum = 0;
-    
-    printf("Consumer (PID: %d) starting...\n", getpid());
-    
-    // Read numbers until pipe is closed
-    while (read(read_fd, &number, sizeof(number)) > 0) {
-        count++;
-        sum += number;
-        printf("Consumer: Received %d, running sum: %d\n", number, sum);
-    }
-    
-    printf("Consumer: Final sum: %d\n", sum);
-    close(read_fd);
-    exit(0);
-}
+        int fd[2];
+        pipe(f
