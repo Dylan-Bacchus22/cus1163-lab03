@@ -8,50 +8,51 @@ int run_basic_demo(void) {
     int pipe_fd[2];
     pid_t producer_pid, consumer_pid;
     int status;
-    
+    int data = 42;
     printf("\nParent process (PID: %d) creating children...\n", getpid());
     
-    int pipe_fd[2];
-    if (pipe(pipe_fd) == -1){
+    int pipe1_fd[2];
+    if (pipe(pipe1_fd) == -1){
         perror("pipe failed");
         return -1;
     }
 
     // TODO 2: Fork the producer process
-    close(pipe_fd[0]); // Close read end
-    write(pipe_fd[1], &data, sizeof(data));
-    close(pipe_fd[1]);
+    close(pipe1_fd[0]); // Close read end
+    write(pipe1_fd[1], &data, sizeof(data));
+    close(pipe1_fd[1]);
     // HINT: producer_pid = fork();
     producer_pid = fork();
     // Child calls: producer_process(pipe_fd[1], 1);  // Start with number 1
-    producer_process(pipe_fd[1], 1);
+    producer_process(pipe1_fd[1], 1);
     // Child must close pipe_fd[0] (read end)
-    close pipe_fd[0];
+    close pipe1_fd[0];
     // Parent prints: "Created producer child (PID: %d)"
-    printf("Created producer child (PID: %d)" , pipe_fd[0]);
+    printf("Created producer child (PID: %d)" , pipe1_fd[0]);
 
     // TODO 3: Fork the consumer process
     // HINT: consumer_pid = fork();
     consumer_pid = fork();
     // Child calls: consumer_process(pipe_fd[0], 0);  // Pair ID 0 for basic demo
-    consumer_process(pipe_fd[0], 0); //Pair ID 0 for basic demo
+    consumer_process(pipe1_fd[0], 0); //Pair ID 0 for basic demo
     // Child must close pipe_fd[1] (write end)
-    close (pipe_fd[1]);
+    close (pipe1_fd[1]);
     // Parent prints: "Created consumer child (PID: %d)"
-    printf("Created consumer child (PID: %d)", pipe_fd[1]);
+    printf("Created consumer child (PID: %d)", pipe1_fd[1]);
 
 
     // TODO 4: Parent cleanup - close pipe ends and wait for children
-    close (pipe_fd[1]);
+    close (pipe1_fd[1]);
     // HINT: close(pipe_fd[0]); close(pipe_fd[1]);
-    close (pipe_fd[0]); close (pipe_fd[1]);
+    close (pipe1_fd[0]); close (pipe1_fd[1]);
     // Use waitpid() twice to wait for both specific children
-    int status;
+    int status1;
+    int specific_pid;
     pid_t child_pid = waitpid(specific_pid, &status, 0);
-    printf("Child %d exited with status %d\n", child_pid, status);
+    printf("Child %d exited with status %d\n", child_pid, status1);
     
-    pid_t child_pid = waitpid(specific_pid, &status, 1);
-    printf("Child %d exited with status %d\n", child_pid, status);
+    child_pid = waitpid(specific_pid, &status, 1);
+    printf("Child %d exited with status %d\n", child_pid, status1);
     // Print exit status for each child
 
 
