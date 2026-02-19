@@ -26,7 +26,7 @@ int run_basic_demo(void) {
     // Child calls: producer_process(pipe_fd[1], 1);  // Start with number 1
     producer_process(pipe1_fd[1], 1);
     // Child must close pipe_fd[0] (read end)
-    close pipe1_fd[0];
+    close (pipe1_fd[0]);
     // Parent prints: "Created producer child (PID: %d)"
     printf("Created producer child (PID: %d)" , pipe1_fd[0]);
 
