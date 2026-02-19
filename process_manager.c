@@ -71,7 +71,7 @@ int run_multiple_pairs(int num_pairs) {
     // TODO 5: Create multiple producer-consumer pairs
     
     // HINT: Use a for loop from i=0 to i<num_pairs
-    // For each iteration:
+    // For each iteration: 
     //   - Create a new pipe
     //   - Fork producer: calls producer_process(write_fd, i*5 + 1)
     //     So pair 1 starts with 1, pair 2 starts with 6, pair 3 starts with 11
@@ -79,16 +79,58 @@ int run_multiple_pairs(int num_pairs) {
     //   - Store both PIDs in pids array, increment pid_count
     //   - Parent closes both pipe ends
     //   - Print "=== Pair %d ===" for each pair
+    for (int i = 0; i < num_pairs; i++) {
+
+    printf("=== Pair %d ===\n", i + 1);
+
+    int fd[2];
+    pipe(fd);  // Create pipe
+
+    pid_t producer_pid = fork();
+
+    if (producer_pid == 0) {
+        close(fd[0]);  // close read end
+        producer_process(fd[1], i * 5 + 1);
+        exit(0);
+    }
+
+    pid_t consumer_pid = fork();
+
+    if (consumer_pid == 0) {
+        close(fd[1]);  // close write end
+        consumer_process(fd[0], i + 1);
+        exit(0);
+    }
+
+    close(fd[0]);
+    close(fd[1]);
+
+    pids[pid_count++] = producer_pid;
+    pids[pid_count++] = consumer_pid;
+    }
+
+
 
 
     // TODO 6: Wait for all children
     // HINT: Use a for loop to wait for all PIDs in the pids array
     // Print exit status for each child
+    for (int i = 0; i < pid_count; i++) {
+    int status;
+    pid_t finished_pid = waitpid(pids[i], &status, 0);
+
+    if (WIFEXITED(status)) {
+        printf("Child %d exited with status %d\n",
+               finished_pid,
+               WEXITSTATUS(status));
+    }
+    }
+
     printf("\nAll pairs completed successfully!\n");
 
     
     return 0;
-}
+    }
 
 /*
  * Producer Process - Sends 5 sequential numbers starting from start_num
